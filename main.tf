@@ -1,7 +1,7 @@
 provider "aws" {
-  region = var.region
+  region                   = var.region
   shared_credentials_files = ["~/.aws/credentials"]
-  profile = "default"
+  profile                  = "default"
 }
 
 
@@ -37,12 +37,12 @@ data "aws_iam_policy" "ECSTaskExecution" {
 
 ## Create an ECS task execution role
 resource "aws_iam_role" "ECSTaskExecutionRole" {
-  name               = "ian-tf-ECSTaskExecutionRole"
+  name = "ian-tf-ECSTaskExecutionRole"
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
       {
-	    Action = "sts:AssumeRole"
+        Action = "sts:AssumeRole"
         Effect = "Allow"
         Principal = {
           Service = "ecs-tasks.amazonaws.com"
@@ -64,13 +64,13 @@ resource "aws_ecs_cluster" "ecs_cluster" {
 
   configuration {
     execute_command_configuration {
-      logging    = "DEFAULT"
-	}
+      logging = "DEFAULT"
+    }
   }
 }
 
 resource "aws_ecs_cluster_capacity_providers" "fargate_provider" {
-  cluster_name = aws_ecs_cluster.ecs_cluster.name
+  cluster_name       = aws_ecs_cluster.ecs_cluster.name
   capacity_providers = ["FARGATE"]
 }
 
@@ -89,62 +89,62 @@ resource "aws_ecs_task_definition" "task_definition" {
   memory                   = 512
 
   container_definitions = templatefile("containers/td.template.json",
-    { CONTAINER_PORT              = var.container_port,
-      REGION                      = var.region,
-      LOG_GROUP                   = aws_cloudwatch_log_group.service_log_group.name,
-      APP_NAME                    = var.app_name,
-	  IMAGE                       = var.image_uri }
+    { CONTAINER_PORT = var.container_port,
+      REGION         = var.region,
+      LOG_GROUP      = aws_cloudwatch_log_group.service_log_group.name,
+      APP_NAME       = var.app_name,
+    IMAGE = var.image_uri }
   )
 }
 
 ## Create SGs
 resource "aws_security_group" "alb_sg" {
-  name   = "alb-sg"
-  vpc_id = data.aws_vpc.default_vpc.id
+  name        = "alb-sg"
+  vpc_id      = data.aws_vpc.default_vpc.id
   description = "Only allow inbound from port 80 and 443 to ALB"
- 
+
   ingress {
-   protocol         = "tcp"
-   from_port        = 80
-   to_port          = 80
-   cidr_blocks      = ["0.0.0.0/0"]
-   ipv6_cidr_blocks = ["::/0"]
+    protocol         = "tcp"
+    from_port        = 80
+    to_port          = 80
+    cidr_blocks      = ["0.0.0.0/0"]
+    ipv6_cidr_blocks = ["::/0"]
   }
- 
+
   ingress {
-   protocol         = "tcp"
-   from_port        = 443
-   to_port          = 443
-   cidr_blocks      = ["0.0.0.0/0"]
-   ipv6_cidr_blocks = ["::/0"]
+    protocol         = "tcp"
+    from_port        = 443
+    to_port          = 443
+    cidr_blocks      = ["0.0.0.0/0"]
+    ipv6_cidr_blocks = ["::/0"]
   }
- 
+
   egress {
-   protocol         = "-1"
-   from_port        = 0
-   to_port          = 0
-   cidr_blocks      = ["0.0.0.0/0"]
-   ipv6_cidr_blocks = ["::/0"]
+    protocol         = "-1"
+    from_port        = 0
+    to_port          = 0
+    cidr_blocks      = ["0.0.0.0/0"]
+    ipv6_cidr_blocks = ["::/0"]
   }
 }
 
 resource "aws_security_group" "ecs_services_sg" {
-  name   = "ecs-service-sg"
-  vpc_id = data.aws_vpc.default_vpc.id
+  name        = "ecs-service-sg"
+  vpc_id      = data.aws_vpc.default_vpc.id
   description = "Only allow inbound from ALB"
- 
+
   ingress {
-   protocol         = "tcp"
-   from_port        = 80
-   to_port          = 80
-   security_groups = [aws_security_group.alb_sg.id]
+    protocol        = "tcp"
+    from_port       = 80
+    to_port         = 80
+    security_groups = [aws_security_group.alb_sg.id]
   }
- 
+
   egress {
-   protocol         = "-1"
-   from_port        = 0
-   to_port          = 0
-   cidr_blocks      = ["0.0.0.0/0"]
+    protocol    = "-1"
+    from_port   = 0
+    to_port     = 0
+    cidr_blocks = ["0.0.0.0/0"]
   }
 }
 
@@ -157,7 +157,7 @@ data "aws_route53_zone" "public" {
 resource "aws_acm_certificate" "cert" {
   domain_name       = "www.${var.r53_zone}"
   validation_method = "DNS"
-lifecycle {
+  lifecycle {
     create_before_destroy = true
   }
 }
@@ -165,15 +165,15 @@ lifecycle {
 resource "aws_route53_record" "cert_validation" {
   allow_overwrite = true
   name            = tolist(aws_acm_certificate.cert.domain_validation_options)[0].resource_record_name
-  records         = [ tolist(aws_acm_certificate.cert.domain_validation_options)[0].resource_record_value ]
+  records         = [tolist(aws_acm_certificate.cert.domain_validation_options)[0].resource_record_value]
   type            = tolist(aws_acm_certificate.cert.domain_validation_options)[0].resource_record_type
-  zone_id  = data.aws_route53_zone.public.id
-  ttl      = 60
+  zone_id         = data.aws_route53_zone.public.id
+  ttl             = 60
 }
 
 resource "aws_acm_certificate_validation" "validate" {
   certificate_arn         = aws_acm_certificate.cert.arn
-  validation_record_fqdns = [ aws_route53_record.cert_validation.fqdn ]
+  validation_record_fqdns = [aws_route53_record.cert_validation.fqdn]
 }
 
 ## Create load balancing resources ( enable https over http )
@@ -183,7 +183,7 @@ resource "aws_lb" "lb" {
   load_balancer_type = "application"
   security_groups    = [aws_security_group.alb_sg.id]
   subnets            = [data.aws_subnet.default_subnet_a.id, data.aws_subnet.default_subnet_b.id]
- }
+}
 
 resource "aws_alb_target_group" "target_group" {
   name        = "tg-${var.app_name}"
@@ -191,17 +191,17 @@ resource "aws_alb_target_group" "target_group" {
   protocol    = "HTTP"
   vpc_id      = data.aws_vpc.default_vpc.id
   target_type = "ip"
- 
+
   health_check {
-   healthy_threshold   = "3"
-   interval            = "30"
-   protocol            = "HTTP"
-   matcher             = "200"
-   timeout             = "3"
-   path                = "/"
-   unhealthy_threshold = "2"
+    healthy_threshold   = "3"
+    interval            = "30"
+    protocol            = "HTTP"
+    matcher             = "200"
+    timeout             = "3"
+    path                = "/"
+    unhealthy_threshold = "2"
   }
-} 
+}
 
 resource "aws_lb_listener" "http_listener" {
   load_balancer_arn = aws_lb.lb.arn
@@ -247,7 +247,7 @@ resource "aws_ecs_service" "ecs_service" {
   network_configuration {
     security_groups  = [aws_security_group.ecs_services_sg.id]
     subnets          = [data.aws_subnet.default_subnet_a.id, data.aws_subnet.default_subnet_b.id]
-    assign_public_ip = true  
+    assign_public_ip = true
   }
 
   load_balancer {
@@ -262,7 +262,7 @@ resource "aws_route53_record" "app_dns" {
   zone_id = data.aws_route53_zone.public.zone_id
   name    = "www.${var.r53_zone}"
   type    = "A"
-alias {
+  alias {
     name                   = aws_alb.lb.dns_name
     zone_id                = aws_alb.lb.zone_id
     evaluate_target_health = false
