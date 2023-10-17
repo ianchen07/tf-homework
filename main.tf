@@ -263,8 +263,8 @@ resource "aws_route53_record" "app_dns" {
   name    = "www.${var.r53_zone}"
   type    = "A"
   alias {
-    name                   = aws_alb.lb.dns_name
-    zone_id                = aws_alb.lb.zone_id
+    name                   = aws_lb.lb.dns_name
+    zone_id                = aws_lb.lb.zone_id
     evaluate_target_health = false
   }
 }
