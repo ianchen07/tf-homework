@@ -155,7 +155,7 @@ data "aws_route53_zone" "public" {
 }
 
 resource "aws_acm_certificate" "cert" {
-  domain_name       = "www.${var.r53_zone}"
+  domain_name       = "${var.app_name}.${var.r53_zone}"
   validation_method = "DNS"
   lifecycle {
     create_before_destroy = true
@@ -260,7 +260,7 @@ resource "aws_ecs_service" "ecs_service" {
 ## Create R53 record
 resource "aws_route53_record" "app_dns" {
   zone_id = data.aws_route53_zone.public.zone_id
-  name    = "www.${var.r53_zone}"
+  name    = "${var.app_name}.${var.r53_zone}"
   type    = "A"
   alias {
     name                   = aws_lb.lb.dns_name
