@@ -32,5 +32,4 @@ variable "container_port" {
 variable "r53_zone" {
   description = "Name of the R53 zone"
   type        = string
-  default     = "tf1017.com"
 }
