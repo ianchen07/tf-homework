@@ -93,7 +93,7 @@ resource "aws_ecs_task_definition" "task_definition" {
       REGION         = var.region,
       LOG_GROUP      = aws_cloudwatch_log_group.service_log_group.name,
       APP_NAME       = var.app_name,
-    IMAGE = var.image_uri }
+      IMAGE          = var.image_uri }
   )
 }
 
